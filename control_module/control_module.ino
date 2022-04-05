@@ -2,25 +2,34 @@
 
 #define DEBOUNCE 100
 
-const uint8_t leftLedPin = 21;
-const uint8_t rightLedPin = 22;
-const uint8_t brakeLedPin = 23;
+const uint8_t leftLedPin = 18;
+const uint8_t rightLedPin = 21;
+const uint8_t brakeLedPin = 19;
 
 // rightIndcPin will be 13 in final design
 // left and right pins have been switched for testing
-uint8_t leftIndcPin = 19;
+uint8_t leftIndcPin = 23;
 static uint8_t leftIndcState = 0;
 unsigned long leftIndcMillis = 0;
-uint8_t rightIndcPin = 15;
+uint8_t rightIndcPin = 22;
 static uint8_t rightIndcState = 0;
 unsigned long rightIndcMillis = 0;
-//uint8_t brakes = 0;
+
+const uint8_t resLeftPin = 2;
+const uint8_t resRightPin = 4;
+int resLeftVal = 0;
+int resRightVal;
+uint8_t brakesState = 0;
 
 static boolean braking = false;
 static boolean leftIndcOn = false;
 static boolean rightIndcOn = false;
 
 unsigned long prevMillisPair = 0;
+
+const uint8_t potPin = 15;
+int potVal;
+int prevPotVal;
 
 /*
    Current value of output characteristic persisted here
@@ -32,7 +41,7 @@ unsigned long prevMillisPair = 0;
    7:   brightness
    8:   flash rate
 */
-static uint8_t outputData[9] = {0, 1, 0, 1, 0, 0, 0, 0, 0};
+uint8_t outputData[9] = {0, 1, 0, 1, 0, 0, 0, 0, 0};
 
 /* Specify the Service UUID of Server */
 static BLEUUID serviceUUID("6e400001-b5a3-f393-e0a9-e50e24dcca9e");
@@ -243,6 +252,27 @@ bool readStates()
   newOutputData[5] = rightIndcState % 2;
   rightIndcState = 0;
 
+  resLeftVal = analogRead(resLeftPin);
+  resRightVal = analogRead(resRightPin);
+//  Serial.print(resLeftVal);
+//  Serial.print(" | ");
+//  Serial.println(resRightVal);
+  if (resLeftVal > 1530)
+  {
+    newOutputData[6] = 1;
+  }
+//  if (resRightVal > 1400)
+//  {
+//    Serial.println("BRAKING");
+//  }
+
+  potVal = analogRead(potPin);
+  if (potVal != prevPotVal)
+  {
+    newOutputData[8] = map(potVal, 0, 4095, 0, 255);
+  }
+  prevPotVal = potVal;
+
   // Compare current and new outputData
   for (uint8_t i = 4; i < 9; i++)
   {
@@ -291,6 +321,18 @@ void blinkLeds()
     state = !state;
     prevMillisIndcLed = millis();
   }
+  if (!braking)
+  {
+    digitalWrite(brakeLedPin, LOW);
+  }
+  if (!leftIndcOn)
+  {
+    digitalWrite(leftLedPin, LOW);
+  }
+  if (!rightIndcOn)
+  {
+    digitalWrite(rightLedPin, LOW);
+  }
 }
 
 void setup()
@@ -303,6 +345,13 @@ void setup()
   // indc button inputs
   pinMode(leftIndcPin, INPUT);
   pinMode(rightIndcPin, INPUT);
+
+  // brakes
+  pinMode(resLeftPin, INPUT);
+  pinMode(resRightPin, INPUT);
+
+  // pot
+  pinMode(potPin, INPUT);
 
   // interrupts for indc buttons
   attachInterrupt(leftIndcPin, leftIndcISR, FALLING);

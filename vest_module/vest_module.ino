@@ -35,13 +35,15 @@ const uint32_t off = onboard.Color(0, 0, 0);
 const uint32_t red = onboard.Color(255, 0, 0);
 const uint32_t green = onboard.Color(0, 255, 0);
 
-const uint32_t orange0 = strip0.Color(255, 170, 0);
-const uint32_t orange1 = strip1.Color(255, 170, 0);
-const uint32_t orange2 = strip2.Color(255, 170, 0);
+// orange
+static uint32_t orange0 = strip0.Color(255, 170, 0);
+static uint32_t orange1 = strip1.Color(255, 170, 0);
+static uint32_t orange2 = strip2.Color(255, 170, 0);
 
-const uint32_t red0 = strip0.Color(255, 0, 0);
-const uint32_t red1 = strip1.Color(255, 0, 0);
-const uint32_t red2 = strip2.Color(255, 0, 0);
+// red
+static uint32_t red0 = strip0.Color(255, 0, 0);
+static uint32_t red1 = strip1.Color(255, 0, 0);
+static uint32_t red2 = strip2.Color(255, 0, 0);
 
 uint8_t resetCounter, counter = 0;
 int8_t indcDir = 0;
@@ -60,7 +62,18 @@ uint16_t flashPeriod = 1000;
 unsigned long prevFlashTime = 0;
 static boolean flash = false;
 
-uint8_t lightSensor;
+//void adjustBrightness()
+//{
+//  static float lightSensorVal = analogRead(lightSensorPin);
+//  static uint8_t brightness = map(lightSensorVal, 0, 1023, 0, 255);
+//
+//  Serial.printf("Brightness: %d\r\n", brightness);
+//
+//  // red
+//  red0 = strip0.Color(brightness, 0, 0);
+//  red1 = strip1.Color(brightness, 0, 0);
+//  red2 = strip2.Color(brightness, 0, 0);
+//}
 
 void clearStrips()
 {
@@ -127,9 +140,9 @@ void brakes()
         clearStrips();
         if (brakesCount % 2 == 0)
         {
-          strip0.fill(red0, 6, 23);
-          strip1.fill(red1, 6, 23);
-          strip2.fill(red2, 6, 23);
+          strip0.fill(red0, 6, 18);
+          strip1.fill(red1, 6, 18);
+          strip2.fill(red2, 6, 18);
         }
         showStrips();
         brakesCount++;
@@ -151,6 +164,8 @@ void brakes()
         strip2.setPixelColor(i, red2);
       }
       showStrips();
+      delay(100);
+      enableBrakes = false;
     }
   }
   else
@@ -199,9 +214,22 @@ bool handleInput(uint8_t inputData[])
   }
 
   // set brakes state
-  enableBrakes = (inputData[6] == 0x01) ? true : false;
-  brakesCount = (inputData[6] == 0x01) ? brakesCount : 0;
-  brakesCycles = (inputData[6] == 0x01) ? brakesCycles : 0;
+  if (inputData[6] == 0x01)
+  {
+    enableBrakes = true;
+    brakesCount = 0;
+    brakesCycles = 0;
+  }
+//  enableBrakes = (inputData[6] == 0x01) ? true : false;
+//  brakesCount = (inputData[6] == 0x01) ? brakesCount : 0;
+//  brakesCycles = (inputData[6] == 0x01) ? brakesCycles : 0;
+
+  flashPeriod = (float)(2000 * ((float)inputData[8] / 255));
+  if (flashPeriod == 0)
+  {
+    flashPeriod = 1000;
+  }
+  Serial.println(flashPeriod);
 
   return true;
 }
@@ -334,6 +362,7 @@ void loop()
   indicator();
   runningLights();
   pairingLightSequence();
+//  adjustBrightness();
   if (readStates())
   {
     bleuart.write(outputData, 9);
@@ -390,6 +419,7 @@ void disconnect_callback(uint16_t conn_handle, uint8_t reason)
   (void) reason;
 
   connected = false;
+  clearStrips();
   
   tone(buzzerPin, noteE5, 100);
   delay(100);
