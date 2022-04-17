@@ -4,9 +4,7 @@ Cycle safely with the cycling safety vest. The vest uses an Adafruit Circuit Pla
 
 ## Demo
 
-<figure>
-  <iframe src="https://www.youtube.com/embed/49KoyJveJM8" frameborder="0" allowfullscreen="true"> </iframe>
-</figure>
+Watch a demo video [here](https://www.youtube.com/watch?v=49KoyJveJM8).
 
 ### Notice
 
